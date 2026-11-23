@@ -1,0 +1,76 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using YetenekPlatformu.Data
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AppointmentNotificationService Notifications
+@{
+    // Açılır menü (1200 pikselden dar) kapalıyken de görülmemiş değişiklik fark edilsin: ☰ düğmesinde nokta
+    var isMember = SignInManager.IsSignedIn(User) && !User.IsInRole(AppRoles.Admin);
+    var unseen = isMember ? await Notifications.GetAsync(UserManager.GetUserId(User)!) : null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Yetenek Platformu</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/YetenekPlatformu.styles.css" asp-append-version="true" />
+</head>
+<body>
+    @* Bütün sayfalarda: çok açık, yavaşça kayan renk geçişi + yüzen daireler (site.css -> "Site arka planı") *@
+    <div class="site-bg" aria-hidden="true">
+        <span class="bg-blob bg-blob-1"></span>
+        <span class="bg-blob bg-blob-2"></span>
+        <span class="bg-blob bg-blob-3"></span>
+        <span class="bg-blob bg-blob-4"></span>
+        <span class="bg-blob bg-blob-5"></span>
+    </div>
+
+    <header>
+        @* Üye menüsünde 5 bağlantı var: 1200 pikselden dar ekranda menü açılır menüye döner (yana taşmasın) *@
+        <nav class="navbar navbar-expand-xl navbar-toggleable-xl navbar-light site-navbar border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand brand-title" asp-area="" asp-page="/Index">Yetenek Platformu</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Menüyü aç/kapat">
+                    <span class="navbar-toggler-icon"></span>
+                    @if (isMember)
+                    {
+                        <span class="nav-dot nav-dot-toggler" data-unseen-dot="any" hidden="@(!unseen!.Any)"><span class="visually-hidden"> (görülmemiş değişiklik var)</span></span>
+                    }
+                </button>
+                <div class="navbar-collapse collapse d-xl-inline-flex justify-content-end">
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2026 - Yetenek Platformu
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (isMember)
+    {
+        @* Sayfa açıkken 60 saniyede bir kırmızı noktayı sunucudan yeniler (yalnızca gösterir, "görüldü" yapmaz) *@
+        <script src="~/js/notifications.js" asp-append-version="true" data-unseen-url="@Url.Page("/Appointments/Unseen")"></script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

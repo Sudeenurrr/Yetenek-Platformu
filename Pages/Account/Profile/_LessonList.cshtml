@@ -1,0 +1,72 @@
+@model YetenekPlatformu.Pages.Account.Profile.LessonListViewModel
+@using System.Globalization
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@{
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+}
+
+@if (Model.Rows.Count == 0)
+{
+    <p class="empty-state">@Model.EmptyText</p>
+}
+else
+{
+    <p class="lesson-total">
+        Toplam <strong>@Model.TotalHours saat</strong> · @Model.Rows.Count ders
+        <span class="lesson-payment-total">@(Model.AsStudent ? "Toplam ödemem" : "Toplam kazancım"): <strong>@PaymentService.FormatAmount(Model.PaymentTotal)</strong></span>
+    </p>
+
+    @* Tablo kendi kutusu içinde yana kayar; dar ekranda (320-360 px) sayfa taşmaz *@
+    <div class="lesson-table-wrap">
+        <table class="lesson-table">
+            <thead>
+                <tr>
+                    <th scope="col">Tarih</th>
+                    <th scope="col">Saat</th>
+                    <th scope="col">Yetenek</th>
+                    <th scope="col">Kiminle</th>
+                    <th scope="col">Süre</th>
+                    <th scope="col">Tür</th>
+                    <th scope="col">Ödeme</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr id="ders-@row.AppointmentId">
+                        <td>@row.StartTime.ToString("d MMMM yyyy, dddd", tr)</td>
+                        <td>@row.StartTime.ToString("HH:mm", tr)–@row.StartTime.AddHours(row.DurationHours).ToString("HH:mm", tr)</td>
+                        <td>@row.SkillName</td>
+                        <td>
+                            @if (row.OtherPartyName is null)
+                            {
+                                <span class="deleted-member">Silinmiş Üye</span>
+                            }
+                            else
+                            {
+                                @row.OtherPartyName
+                            }
+                        </td>
+                        <td>@row.DurationHours saat</td>
+                        <td>@(row.MeetingType == MeetingType.Online ? "Online" : "Yüz Yüze")</td>
+                        <td class="lesson-payment">
+                            @if (row.PaymentAmount is decimal amount)
+                            {
+                                <span class="payment-paid">@(Model.AsStudent ? "Ödendi · " : "")@PaymentService.FormatAmount(amount)</span>
+                            }
+                            else if (Model.AsStudent && row.CanPay)
+                            {
+                                <a class="fancy-btn fancy-btn-sm fancy-btn-primary" href="@Url.Page("/Account/Profile/Pay", new { id = row.AppointmentId })">Ödeme Yap</a>
+                            }
+                            else
+                            {
+                                <span class="payment-none">@(Model.AsStudent ? "—" : "Ödeme yok")</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

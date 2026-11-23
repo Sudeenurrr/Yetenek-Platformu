@@ -1,0 +1,85 @@
+@page
+@model YetenekPlatformu.Pages.Account.Profile.PayModel
+@using System.Globalization
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@using YetenekPlatformu.Settings
+@{
+    ViewData["Title"] = Model.Target is null ? "Ders Bulunamadı" : "Ödeme Yap";
+    ViewData["ProfileTab"] = "LessonsTaken";
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+}
+
+@* Stiller: wwwroot/css/site.css -> "Gönüllü ödeme" *@
+<div class="profile-shell">
+    <partial name="_ProfileHeader" />
+
+    <section class="profile-panel payment-panel">
+        @if (Model.Target is null)
+        {
+            <h2 class="profile-section-title">Ders Bulunamadı</h2>
+            <p class="empty-state">Bu ders için ödeme yapılamaz. Yalnızca aldığınız ve tamamlanmış derslerin ödemesini yapabilirsiniz; dersi veren kişi üyeliğini sildiyse ödeme yapılamaz.</p>
+            <div class="form-actions">
+                <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Account/Profile/LessonsTaken")">Aldığım Dersler</a>
+            </div>
+        }
+        else
+        {
+            var target = Model.Target;
+            var end = target.StartTime.AddHours(target.DurationHours);
+            <h2 class="profile-section-title">Ödeme Yap</h2>
+
+            <dl class="payment-summary">
+                <div><dt>Dersi veren</dt><dd>@target.InstructorName</dd></div>
+                <div><dt>Yetenek</dt><dd>@target.SkillName</dd></div>
+                <div><dt>Tarih</dt><dd>@target.StartTime.ToString("d MMMM yyyy, dddd", tr) · @target.StartTime.ToString("HH:mm", tr)–@end.ToString("HH:mm", tr)</dd></div>
+                <div><dt>Süre ve tür</dt><dd>@target.DurationHours saat · @(target.MeetingType == MeetingType.Online ? "Online" : "Yüz Yüze")</dd></div>
+                <div><dt>IBAN</dt><dd class="payment-iban">@target.InstructorIban</dd></div>
+            </dl>
+
+            @if (target.PaidAmount is decimal paid)
+            {
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <p class="profile-status payment-done" role="status">
+                    Bu ders için @(target.PaidAt?.ToString("d MMMM yyyy HH:mm", tr)) tarihinde <strong>@PaymentService.FormatAmount(paid)</strong> ödeme yaptınız.
+                </p>
+                <div class="form-actions">
+                    <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Account/Profile/LessonsTaken")">Aldığım Dersler</a>
+                </div>
+            }
+            else
+            {
+                <form method="post" novalidate class="account-form" id="payment-form">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+
+                    <fieldset class="mb-3">
+                        <legend class="form-label">Tutar</legend>
+                        <div class="payment-amounts">
+                            @foreach (var option in PaymentOptions.AllowedAmounts)
+                            {
+                                var value = option.ToString("0", CultureInfo.InvariantCulture);
+                                <label class="payment-amount">
+                                    <input type="radio" name="Amount" value="@value" checked="@(Model.Amount == value)" />
+                                    <span>@PaymentService.FormatAmount(option)</span>
+                                </label>
+                            }
+                        </div>
+                    </fieldset>
+
+                    <p class="field-note">Ödeme gönüllüdür. Bu proje gerçek bir ödeme sistemi değildir: para aktarılmaz, ödeme yalnızca kayıt olarak tutulur.</p>
+                    <p class="field-note payment-warning">Ödeme gönderildikten sonra geri alınamaz ve değiştirilemez. Her ders için yalnızca bir ödeme yapılabilir.</p>
+
+                    <div class="form-actions">
+                        <button type="submit" class="fancy-btn fancy-btn-primary" id="payment-submit">Ödemeyi Gönder</button>
+                        <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Account/Profile/LessonsTaken")">Vazgeç</a>
+                    </div>
+                </form>
+            }
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/payment.js" asp-append-version="true"></script>
+}

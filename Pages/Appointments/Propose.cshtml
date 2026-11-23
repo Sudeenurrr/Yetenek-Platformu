@@ -1,0 +1,139 @@
+@page
+@model YetenekPlatformu.Pages.Appointments.ProposeModel
+@using System.Globalization
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@{
+    ViewData["Title"] = Model.Target is null ? "Randevu Bulunamadı" : "Değişiklik Öner";
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+}
+
+@* Stiller: wwwroot/css/site.css -> "Randevu Al"; takvim ve saatler: wwwroot/js/appointment.js (bekleme listesi bu sayfada yok) *@
+<div class="account-card appointment-card">
+    @if (Model.Target is null)
+    {
+        <h1 class="account-title">Randevu Bulunamadı</h1>
+        <p class="empty-state">Bu randevu için değişiklik önerilemez. Yalnızca onaylanmış ve saati gelmemiş randevularınız için öneri yapabilirsiniz; randevuda yanıt bekleyen bir öneri varsa önce o sonuçlanmalıdır.</p>
+        <div class="form-actions">
+            <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Appointments/Sent")">Gönderdiğim Randevular</a>
+            <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Appointments/Incoming")">Randevu İstekleri</a>
+        </div>
+    }
+    else
+    {
+        var target = Model.Target;
+        var end = target.StartTime.AddHours(target.DurationHours);
+        <h1 class="account-title">Değişiklik Öner</h1>
+        <p class="appointment-with"><strong>@(target.OtherPartyName ?? "Silinmiş Üye")</strong> · @target.SkillName · @(target.MeetingType == MeetingType.Online ? "Online" : "Yüz Yüze")</p>
+        <p class="appointment-current">
+            <span class="appointment-contact-label">Mevcut saat</span>
+            @target.StartTime.ToString("d MMMM yyyy, dddd", tr) · @target.StartTime.ToString("HH:mm", tr)–@end.ToString("HH:mm", tr) (@target.DurationHours saat)
+        </p>
+        @if (target.MeetingType == MeetingType.FaceToFace)
+        {
+            <p class="appointment-current">
+                <span class="appointment-contact-label">Buluşma yeri</span>
+                @(target.PlaceName ?? "Belirtilmedi")
+            </p>
+        }
+        <p class="field-note">Karşı taraf kabul ederse randevu yeni saate@(target.MeetingType == MeetingType.FaceToFace ? " ve yere" : "") taşınır; reddederse ya da 24 saat içinde yanıtlamazsa randevu mevcut haliyle devam eder. Görüşme türü ve link değişmez.</p>
+
+        <form method="post" novalidate class="account-form" id="appointment-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            @* Neyi değiştirmek istiyor: gün/saat ve/veya (yalnızca Yüz Yüze) buluşma yeri; en az biri (sunucu kontrol eder) *@
+            <fieldset class="mb-3">
+                <legend class="form-label">Neyi değiştirmek istiyorsunuz?</legend>
+                <div class="appointment-choices">
+                    <label><input type="checkbox" name="Input.ChangeTime" value="true" id="change-time" checked="@Model.Input.ChangeTime" /> Gün/saat</label>
+                    @if (target.MeetingType == MeetingType.FaceToFace)
+                    {
+                        <label class="@(target.CanChangePlace ? "" : "is-disabled")">
+                            <input type="checkbox" name="Input.ChangePlace" value="true" id="change-place"
+                                   checked="@(target.CanChangePlace && Model.Input.ChangePlace)" disabled="@(!target.CanChangePlace)" /> Buluşma yeri
+                        </label>
+                    }
+                </div>
+                @if (target.MeetingType == MeetingType.FaceToFace && !target.CanChangePlace)
+                {
+                    <p class="field-note">Şehirleriniz artık farklı olduğu için yeni buluşma yeri önerilemez. Yalnızca gün/saat önerebilirsiniz.</p>
+                }
+            </fieldset>
+
+            @* Yeni buluşma yeri (Randevu Al ile aynı arama: yalnızca "Ara" / Enter, ortak şehir içinde; elle yazılabilir) *@
+            @if (target.MeetingType == MeetingType.FaceToFace && target.CanChangePlace)
+            {
+                <fieldset class="mb-3 place-picker" id="place-picker" hidden="@(!Model.Input.ChangePlace)" data-toggle-checkbox="change-place"
+                          data-places-url="@Url.Page("/Appointments/Propose", "Places", new { id = Model.Id })">
+                    <legend class="form-label">Yeni buluşma yeri <span class="field-hint">@target.City içinde</span></legend>
+                    <div class="place-search-row">
+                        <label class="visually-hidden" for="place-query">Yer ara</label>
+                        <input id="place-query" type="search" class="form-control" maxlength="@PlaceSearchService.MaxQueryLength"
+                               placeholder="Ör. bir kütüphane, kafe ya da meydan adı" />
+                        <button type="button" class="fancy-btn fancy-btn-sm fancy-btn-secondary" id="place-search">Ara</button>
+                    </div>
+                    <p class="field-note" id="place-status" aria-live="polite"></p>
+                    <ul class="place-results" id="place-results" aria-label="Arama sonuçları"></ul>
+                    <p class="place-attribution" id="place-attribution" hidden>
+                        Arama sonuçları: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap katkıda bulunanlar</a>
+                    </p>
+                    <label class="form-label place-name-label" for="place-name">Seçilen yer <span class="field-hint">listede yoksa elle yazabilirsiniz</span></label>
+                    <input id="place-name" name="Input.PlaceName" class="form-control" maxlength="@PlaceSearchService.PlaceNameMaxLength"
+                           autocomplete="off" value="@Model.Input.PlaceName" />
+                    <input type="hidden" name="Input.PlaceLatitude" id="place-lat" value="@Model.Input.PlaceLatitude" />
+                    <input type="hidden" name="Input.PlaceLongitude" id="place-lon" value="@Model.Input.PlaceLongitude" />
+                    <p class="field-note" id="place-kind"></p>
+                </fieldset>
+            }
+
+            @* Yeni gün/saat: "Gün/saat" seçili değilse gizlenir, sunucu mevcut saati kullanır *@
+            <div id="time-section" hidden="@(!Model.Input.ChangeTime)">
+            <fieldset class="mb-3">
+                <legend class="form-label">Yeni gün <span class="field-hint">en fazla @Model.MaxDaysAhead gün sonrası</span></legend>
+                <input type="hidden" name="Input.Date" id="appointment-date" value="@Model.Input.Date?.ToString("yyyy-MM-dd")" />
+                <div class="tr-calendar" id="appointment-calendar"
+                     data-today="@Model.MinDate.ToString("yyyy-MM-dd")" data-max="@Model.MaxDate.ToString("yyyy-MM-dd")"
+                     data-range-url="@Url.Page("/Appointments/Create", "Range")"
+                     data-slots-url="@Url.Page("/Appointments/Propose", "Slots", new { id = Model.Id })">
+                    <noscript><p class="field-note">Takvimi kullanmak için tarayıcınızda JavaScript açık olmalıdır.</p></noscript>
+                </div>
+                <p class="calendar-selected" id="appointment-date-label" aria-live="polite"></p>
+                <span asp-validation-for="Input.Date" class="text-danger"></span>
+            </fieldset>
+
+            <fieldset class="mb-3">
+                <legend class="form-label">Süre</legend>
+                <div class="appointment-choices">
+                    <label><input type="radio" name="Input.DurationHours" value="1" checked="@(Model.Input.DurationHours != 2)" /> 1 saat</label>
+                    <label><input type="radio" name="Input.DurationHours" value="2" checked="@(Model.Input.DurationHours == 2)" /> 2 saat <span class="field-hint">art arda</span></label>
+                </div>
+            </fieldset>
+
+            <fieldset class="mb-3">
+                <legend class="form-label">Yeni saat <span class="field-hint">@Model.DayStartHour.ToString("00"):00 – @Model.DayEndHour.ToString("00"):00</span></legend>
+                <input type="hidden" asp-for="Input.StartHour" id="appointment-start-hour" />
+                <p class="field-note" id="appointment-slots-note">Saatleri görmek için bir gün seçin.</p>
+                <div class="slot-grid" id="appointment-slots" role="group" aria-label="Saatler"></div>
+                <ul class="slot-legend" aria-hidden="true">
+                    <li><span class="slot-dot slot-free"></span> Boş</li>
+                    <li><span class="slot-dot slot-busy"></span> Dolu</li>
+                    <li><span class="slot-dot slot-mine"></span> Bu saatte başka randevunuz var</li>
+                </ul>
+                <span asp-validation-for="Input.StartHour" class="text-danger"></span>
+            </fieldset>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="fancy-btn fancy-btn-primary" id="appointment-submit">Öneri Gönder</button>
+                <a class="fancy-btn fancy-btn-secondary" href="@Url.Page(target.IsStudent ? "/Appointments/Sent" : "/Appointments/Incoming")">Vazgeç</a>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/appointment.js" asp-append-version="true"></script>
+    <script src="~/js/place-search.js" asp-append-version="true"></script>
+    <script src="~/js/propose.js" asp-append-version="true"></script>
+}

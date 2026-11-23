@@ -1,0 +1,78 @@
+@page
+@model YetenekPlatformu.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Kayıt Ol";
+}
+
+@* Stiller: wwwroot/css/site.css -> "Hesap formları" *@
+<div class="account-card">
+    <h1 class="account-title">Kayıt Ol</h1>
+
+    <form method="post" novalidate class="account-form">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Input.FirstName" class="form-label">Ad</label>
+            <input asp-for="Input.FirstName" class="form-control" autocomplete="given-name" />
+            <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.LastName" class="form-label">Soyad</label>
+            <input asp-for="Input.LastName" class="form-control" autocomplete="family-name" />
+            <span asp-validation-for="Input.LastName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Password" class="form-label">Şifre <span class="field-hint">en az 6 karakter</span></label>
+            <input asp-for="Input.Password" class="form-control" autocomplete="new-password" />
+            <span asp-validation-for="Input.Password" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Iban" class="form-label">IBAN <span class="field-hint">TR'den sonra 7 rakam</span></label>
+            @* "TR" sabittir; kullanıcı 7 rakam yazar (wwwroot/js/input-format.js) *@
+            <div class="input-prefix-group">
+                <span class="input-prefix" aria-hidden="true">TR</span>
+                <input asp-for="Input.Iban" class="form-control" inputmode="numeric" maxlength="9"
+                       placeholder="1234567" data-format="iban" aria-label="IBAN, TR'den sonraki 7 rakam" />
+            </div>
+            <span asp-validation-for="Input.Iban" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.PhoneNumber" class="form-label">Telefon</label>
+            @* "+90 5" sabittir; kalan 9 rakam yazılırken "55 555 55 55" biçimine girer *@
+            <div class="input-prefix-group">
+                <span class="input-prefix" aria-hidden="true">+90 5</span>
+                <input asp-for="Input.PhoneNumber" class="form-control" type="tel" inputmode="numeric" maxlength="17"
+                       placeholder="55 555 55 55" data-format="phone" aria-label="Telefon, +90 5'ten sonraki 9 rakam" />
+            </div>
+            <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.City" class="form-label">Şehir</label>
+            <select asp-for="Input.City" class="form-select">
+                <option value="">-- Şehir seçin --</option>
+                @foreach (var city in Model.Cities)
+                {
+                    <option value="@city">@city</option>
+                }
+            </select>
+            <span asp-validation-for="Input.City" class="text-danger"></span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="fancy-btn fancy-btn-primary">Kayıt Ol</button>
+            <span class="form-alt">
+                <span class="form-alt-text">Zaten üye misiniz?</span>
+                <a class="fancy-btn fancy-btn-secondary" asp-page="/Account/Login">Giriş Yap</a>
+            </span>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/input-format.js" asp-append-version="true"></script>
+}

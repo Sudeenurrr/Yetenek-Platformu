@@ -1,0 +1,83 @@
+@page
+@model YetenekPlatformu.Pages.Appointments.WaitlistModel
+@using System.Globalization
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@{
+    ViewData["Title"] = "Bekleme Listem";
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+}
+
+@* Stiller: wwwroot/css/site.css -> "Randevu listeleri" ve "Bekleme listesi" *@
+<div class="search-shell">
+    <h1 class="account-title">Bekleme Listem</h1>
+    <p class="appointment-page-intro">Dolu saatler için girdiğiniz bekleme kayıtları. Saat boşalınca talebiniz otomatik gönderilir.</p>
+
+    <p class="waitlist-link">
+        <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" href="@Url.Page("/Appointments/Sent")">Gönderdiğim Randevular</a>
+    </p>
+
+    @if (TempData["StatusMessage"] is string statusMessage)
+    {
+        <p class="@(TempData["StatusIsError"] is true ? "text-danger appointment-error" : "profile-status")" role="status">@statusMessage</p>
+    }
+
+    @if (Model.Rows.Count == 0)
+    {
+        <p class="empty-state">Bekleme listesinde kaydınız yok. Randevu Al ekranında dolu bir saati seçerek sıraya girebilirsiniz.</p>
+    }
+    else
+    {
+        <div class="appointment-list">
+            @foreach (var row in Model.Rows)
+            {
+                var end = row.StartTime.AddHours(row.DurationHours);
+                <article class="appointment-item" id="kayit-@row.Id">
+                    <div class="appointment-item-head">
+                        <h3><a href="@Url.Page("/Members/Profile", new { id = row.InstructorId })">@row.InstructorName</a></h3>
+                        <span class="status-badge waitlist-@row.Status.ToString().ToLowerInvariant()">@WaitlistService.StatusName(row.Status)</span>
+                    </div>
+
+                    <dl class="appointment-details">
+                        <div><dt>Yetenek</dt><dd>@row.SkillName</dd></div>
+                        <div><dt>Gün</dt><dd>@row.StartTime.ToString("d MMMM yyyy, dddd", tr)</dd></div>
+                        <div><dt>Saat</dt><dd>@row.StartTime.ToString("HH:mm", tr)–@end.ToString("HH:mm", tr)</dd></div>
+                        <div><dt>Süre</dt><dd>@row.DurationHours saat</dd></div>
+                        <div><dt>Görüşme</dt><dd>@(row.MeetingType == MeetingType.Online ? "Online" : "Yüz Yüze")</dd></div>
+                    </dl>
+
+                    @if (row.MeetingType == MeetingType.FaceToFace)
+                    {
+                        <p class="appointment-place">
+                            <span class="appointment-contact-label">Buluşma yeri</span>
+                            @if (row.PlaceName is null)
+                            {
+                                <span class="field-note">Belirtilmedi</span>
+                            }
+                            else
+                            {
+                                <span>@row.PlaceName</span>
+                            }
+                        </p>
+                    }
+
+                    @switch (row.Status)
+                    {
+                        case WaitlistStatus.Waiting:
+                            <form method="post" asp-page-handler="Withdraw" class="appointment-actions">
+                                <input type="hidden" name="id" value="@row.Id" />
+                                <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-danger">Listeden Çık</button>
+                            </form>
+                            break;
+                        case WaitlistStatus.Activated:
+                            <p class="field-note">Saat boşaldı, talebiniz gönderildi. Durumunu <a href="@Url.Page("/Appointments/Sent")">Gönderdiğim Randevular</a> sayfasında görebilirsiniz.</p>
+                            break;
+                        case WaitlistStatus.Invalid:
+                            <p class="field-note">Saat boşaldığında ya da saat geldiğinde bu kayıt uygun değildi (saat geçmişti, o saatte başka randevunuz vardı ya da yetenek veya şehir bilgisi değişmişti).</p>
+                            break;
+                    }
+                </article>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,22 @@
+@page
+@model YetenekPlatformu.Pages.Appointments.IncomingModel
+@{
+    ViewData["Title"] = "Randevu İstekleri";
+}
+
+<div class="search-shell">
+    <h1 class="account-title">Randevu İstekleri</h1>
+    <p class="appointment-page-intro">Size gönderilen randevu talepleri. Bekleyen talepleri onaylayabilir ya da reddedebilirsiniz.</p>
+
+    @if (TempData["StatusMessage"] is string statusMessage)
+    {
+        <p class="profile-status" role="status">@statusMessage</p>
+    }
+
+    @if (Model.List.TotalCount > 0)
+    {
+        <partial name="_AppointmentFilter" model="Model.List" />
+    }
+
+    <partial name="_AppointmentList" model="Model.List" />
+</div>

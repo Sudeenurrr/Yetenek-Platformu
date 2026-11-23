@@ -1,0 +1,13 @@
+@page
+@{
+    ViewData["Title"] = "Erişim Yok";
+}
+
+@* Yetkisi olmayan bir sayfaya girilince Identity buraya yönlendirir *@
+<div class="account-card">
+    <h1 class="account-title">Erişim Yok</h1>
+    <p class="text-center">Bu sayfaya erişim yetkiniz yok.</p>
+    <div class="form-actions">
+        <a class="fancy-btn fancy-btn-primary" href="@Url.Page("/Index")">Ana Sayfaya Dön</a>
+    </div>
+</div>

@@ -1,0 +1,44 @@
+@model YetenekPlatformu.Pages.Appointments.AppointmentListViewModel
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@using static YetenekPlatformu.Services.AppointmentResponseService
+@{
+    // Randevu İstekleri ve Gönderdiğim Randevular: üstte zaman (Tümü / Yaklaşan / Geçmiş), altında yalnızca o zamana uyan
+    // durumlar (Yaklaşan: Beklemede, Onaylandı; Geçmiş: Tamamlandı, İptal Edildi, Reddedildi, Süresi Doldu; Tümü: hepsi).
+    // Düğmeler adresi değiştiren bağlantılardır (?time=...&status=...). Zaman değişince seçili durum yeni zamana uymuyorsa
+    // Tümü olur. Değerler sunucuda doğrulanır (AppointmentResponseService.ListFilter).
+    var filter = Model.Filter;
+    string Link(string? status, string? time) => Url.Page(null, new { status, time })!;
+    var times = new (TimeFilter Time, string? Value, string Label)[]
+    {
+        (TimeFilter.All, null, "Tümü"), (TimeFilter.Upcoming, "upcoming", "Yaklaşan"), (TimeFilter.Past, "past", "Geçmiş")
+    };
+
+    // Durum düğmeleri: Tümü ve seçili zamana uyan durumlar; sayılar seçili zamana uyan randevulardan
+    var statuses = new List<(string? Value, string Label, int Count)> { (null, "Tümü", Model.TimeCount) };
+    foreach (var st in StatusesFor(filter.Time))
+    {
+        var value = StatusFilterValues.First(v => v.Status == st).Value;
+        statuses.Add((value, AppointmentResponseService.StatusName(st), Model.StatusCounts.TryGetValue(st, out var n) ? n : 0));
+    }
+}
+
+@* Stiller: wwwroot/css/site.css -> "Randevu listesi filtresi" *@
+<nav class="appointment-filter" aria-label="Randevu filtresi">
+    <div class="filter-group" role="group" aria-label="Zaman">
+        <span class="filter-label">Zaman</span>
+        @foreach (var t in times)
+        {
+            var selected = t.Time == filter.Time;
+            <a class="filter-chip @(selected ? "is-active" : "")" href="@Link(filter.StatusValueFor(t.Time), t.Value)" aria-current="@(selected ? "true" : null)">@t.Label</a>
+        }
+    </div>
+    <div class="filter-group" role="group" aria-label="Durum">
+        <span class="filter-label">Durum</span>
+        @foreach (var s in statuses)
+        {
+            var selected = s.Value == filter.StatusValue;
+            <a class="filter-chip @(selected ? "is-active" : "")" href="@Link(s.Value, filter.TimeValue)" aria-current="@(selected ? "true" : null)">@s.Label <span class="filter-count">(@s.Count)</span></a>
+        }
+    </div>
+</nav>

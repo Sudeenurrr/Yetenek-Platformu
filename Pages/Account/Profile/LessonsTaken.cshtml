@@ -1,0 +1,15 @@
+@page
+@model YetenekPlatformu.Pages.Account.Profile.LessonsTakenModel
+@{
+    ViewData["Title"] = "Aldığım Dersler";
+    ViewData["ProfileTab"] = "LessonsTaken";
+}
+
+<div class="profile-shell">
+    <partial name="_ProfileHeader" />
+
+    <section class="profile-panel">
+        <h2 class="profile-section-title">Aldığım Dersler</h2>
+        <partial name="_LessonList" model="Model.Lessons" />
+    </section>
+</div>

@@ -1,0 +1,27 @@
+@page
+@model YetenekPlatformu.Pages.Appointments.SentModel
+@{
+    ViewData["Title"] = "Gönderdiğim Randevular";
+}
+
+<div class="search-shell">
+    <h1 class="account-title">Gönderdiğim Randevular</h1>
+    <p class="appointment-page-intro">Gönderdiğiniz randevu talepleri ve durumları.</p>
+
+    @* Bekleme listesi ayrı sayfada; menüye öğe eklenmez *@
+    <p class="waitlist-link">
+        <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" href="@Url.Page("/Appointments/Waitlist")">Bekleme Listem@(Model.WaitingCount > 0 ? $" ({Model.WaitingCount})" : "")</a>
+    </p>
+
+    @if (TempData["StatusMessage"] is string statusMessage)
+    {
+        <p class="profile-status" role="status">@statusMessage</p>
+    }
+
+    @if (Model.List.TotalCount > 0)
+    {
+        <partial name="_AppointmentFilter" model="Model.List" />
+    }
+
+    <partial name="_AppointmentList" model="Model.List" />
+</div>

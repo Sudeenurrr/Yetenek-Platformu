@@ -1,0 +1,143 @@
+@page
+@model YetenekPlatformu.Pages.Appointments.CreateModel
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@{
+    ViewData["Title"] = Model.Found ? "Randevu Al" : "Üye Bulunamadı";
+}
+
+@* Stiller: wwwroot/css/site.css -> "Randevu Al"; saatler: wwwroot/js/appointment.js *@
+<div class="account-card appointment-card">
+    @if (!Model.Found)
+    {
+        <h1 class="account-title">Üye Bulunamadı</h1>
+        <p class="empty-state">Bu üyeden randevu alınamaz.</p>
+        <div class="form-actions">
+            <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Search")">Aramaya Dön</a>
+        </div>
+    }
+    else
+    {
+        <h1 class="account-title">Randevu Al</h1>
+        <p class="appointment-with"><strong>@Model.InstructorName</strong> · @Model.InstructorCity</p>
+
+        @if (Model.Skills.Count == 0)
+        {
+            <p class="empty-state">Bu üyenin henüz yeteneği yok, randevu alınamaz.</p>
+        }
+        else
+        {
+            <form method="post" novalidate class="account-form" id="appointment-form">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="InstructorId" />
+
+                <div class="mb-3">
+                    <label asp-for="Input.SkillId" class="form-label">Yetenek</label>
+                    <select asp-for="Input.SkillId" class="form-select">
+                        <option value="">-- Yetenek seçin --</option>
+                        @foreach (var skill in Model.Skills)
+                        {
+                            <option value="@skill.Id">@skill.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Input.SkillId" class="text-danger"></span>
+                </div>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label">Gün <span class="field-hint">en fazla @Model.MaxDaysAhead gün sonrası</span></legend>
+                    @* Türkçe takvim (wwwroot/js/appointment.js). Bugün ve son gün sunucudan, Türkiye saatine göre gelir. *@
+                    <input type="hidden" name="Input.Date" id="appointment-date" value="@Model.Input.Date?.ToString("yyyy-MM-dd")" />
+                    <div class="tr-calendar" id="appointment-calendar"
+                         data-today="@Model.MinDate.ToString("yyyy-MM-dd")" data-max="@Model.MaxDate.ToString("yyyy-MM-dd")"
+                         data-range-url="@Url.Page("/Appointments/Create", "Range")"
+                         data-slots-url="@Url.Page("/Appointments/Create", "Slots", new { instructorId = Model.InstructorId })">
+                        <noscript><p class="field-note">Takvimi kullanmak için tarayıcınızda JavaScript açık olmalıdır.</p></noscript>
+                    </div>
+                    <p class="calendar-selected" id="appointment-date-label" aria-live="polite"></p>
+                    <span asp-validation-for="Input.Date" class="text-danger"></span>
+                </fieldset>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label">Süre</legend>
+                    <div class="appointment-choices">
+                        <label><input type="radio" name="Input.DurationHours" value="1" checked="@(Model.Input.DurationHours != 2)" /> 1 saat</label>
+                        <label><input type="radio" name="Input.DurationHours" value="2" checked="@(Model.Input.DurationHours == 2)" /> 2 saat <span class="field-hint">art arda</span></label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label">Saat <span class="field-hint">@Model.DayStartHour.ToString("00"):00 – @Model.DayEndHour.ToString("00"):00</span></legend>
+                    <input type="hidden" asp-for="Input.StartHour" id="appointment-start-hour" />
+                    <p class="field-note" id="appointment-slots-note">Saatleri görmek için bir gün seçin.</p>
+                    <div class="slot-grid" id="appointment-slots" role="group" aria-label="Saatler"></div>
+                    <ul class="slot-legend" aria-hidden="true">
+                        <li><span class="slot-dot slot-free"></span> Boş</li>
+                        <li><span class="slot-dot slot-busy"></span> Dolu</li>
+                        <li><span class="slot-dot slot-mine"></span> Bu saatte başka randevunuz var</li>
+                    </ul>
+                    <span asp-validation-for="Input.StartHour" class="text-danger"></span>
+                </fieldset>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label">Görüşme Türü</legend>
+                    <div class="appointment-choices">
+                        <label><input type="radio" name="Input.MeetingType" value="@((int)MeetingType.Online)" checked="@(Model.Input.MeetingType != (int)MeetingType.FaceToFace || !Model.CanFaceToFace)" /> Online</label>
+                        <label class="@(Model.CanFaceToFace ? "" : "is-disabled")">
+                            <input type="radio" name="Input.MeetingType" value="@((int)MeetingType.FaceToFace)" disabled="@(!Model.CanFaceToFace)"
+                                   checked="@(Model.CanFaceToFace && Model.Input.MeetingType == (int)MeetingType.FaceToFace)" /> Yüz Yüze
+                        </label>
+                    </div>
+                    @if (!Model.CanFaceToFace)
+                    {
+                        <p class="field-note">Şehirleriniz farklı olduğu için yalnızca Online seçilebilir.</p>
+                    }
+                </fieldset>
+
+                @* Yüz Yüze buluşma yeri (wwwroot/js/place-search.js). Arama yalnızca "Ara" düğmesi ya da Enter ile yapılır
+                   (Nominatim kuralı: otomatik tamamlama yok); istek sunucudan gider. Listede olmayan yer elle yazılabilir. *@
+                @if (Model.CanFaceToFace)
+                {
+                    var isFaceToFace = Model.Input.MeetingType == (int)MeetingType.FaceToFace;
+                    <fieldset class="mb-3 place-picker" id="place-picker" hidden="@(!isFaceToFace)"
+                              data-places-url="@Url.Page("/Appointments/Create", "Places", new { instructorId = Model.InstructorId })">
+                        <legend class="form-label">Buluşma yeri <span class="field-hint">@Model.InstructorCity içinde</span></legend>
+                        <div class="place-search-row">
+                            <label class="visually-hidden" for="place-query">Yer ara</label>
+                            <input id="place-query" type="search" class="form-control" maxlength="@PlaceSearchService.MaxQueryLength"
+                                   placeholder="Ör. bir kütüphane, kafe ya da meydan adı" />
+                            <button type="button" class="fancy-btn fancy-btn-sm fancy-btn-secondary" id="place-search">Ara</button>
+                        </div>
+                        <p class="field-note" id="place-status" aria-live="polite"></p>
+                        <ul class="place-results" id="place-results" aria-label="Arama sonuçları"></ul>
+                        <p class="place-attribution" id="place-attribution" hidden>
+                            Arama sonuçları: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap katkıda bulunanlar</a>
+                        </p>
+                        <label class="form-label place-name-label" for="place-name">Seçilen yer <span class="field-hint">listede yoksa elle yazabilirsiniz</span></label>
+                        <input id="place-name" name="Input.PlaceName" class="form-control" maxlength="@PlaceSearchService.PlaceNameMaxLength"
+                               autocomplete="off" value="@Model.Input.PlaceName" />
+                        <input type="hidden" name="Input.PlaceLatitude" id="place-lat" value="@Model.Input.PlaceLatitude" />
+                        <input type="hidden" name="Input.PlaceLongitude" id="place-lon" value="@Model.Input.PlaceLongitude" />
+                        <p class="field-note" id="place-kind"></p>
+                    </fieldset>
+                }
+
+                @* Dolu saat seçilince JavaScript "true" yapar; sunucu saatin gerçekten dolu olduğunu yeniden kontrol eder *@
+                <input type="hidden" name="Input.JoinWaitlist" id="appointment-join-waitlist" value="false" />
+                <p class="field-note" id="appointment-waitlist-note" hidden>
+                    Bu saat şu an dolu. Bekleme listesine girerseniz saat boşaldığında talebiniz otomatik gönderilir.
+                    Kayıtlarınızı Gönderdiğim Randevular → Bekleme Listem sayfasında görebilirsiniz.
+                </p>
+
+                <div class="form-actions">
+                    <button type="submit" class="fancy-btn fancy-btn-primary" id="appointment-submit">Talep Gönder</button>
+                    <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Members/Profile", new { id = Model.InstructorId })">Vazgeç</a>
+                </div>
+            </form>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/appointment.js" asp-append-version="true"></script>
+    <script src="~/js/place-search.js" asp-append-version="true"></script>
+}

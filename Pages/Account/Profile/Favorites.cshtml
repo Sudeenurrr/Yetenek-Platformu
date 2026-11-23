@@ -1,0 +1,61 @@
+@page
+@model YetenekPlatformu.Pages.Account.Profile.FavoritesModel
+@{
+    ViewData["Title"] = "Favorilerim";
+    ViewData["ProfileTab"] = "Favorites";
+}
+
+<div class="profile-shell">
+    <partial name="_ProfileHeader" />
+
+    <section class="profile-panel">
+        <h2 class="profile-section-title">Favorilerim</h2>
+
+        @if (Model.Favorites.Count == 0)
+        {
+            <p class="empty-state">Henüz favoriniz yok. Arama sonuçlarında beğendiğiniz kişileri favorilere ekleyebilirsiniz.</p>
+        }
+        else
+        {
+            <div class="favorite-grid">
+                @foreach (var favorite in Model.Favorites)
+                {
+                    <article class="favorite-card">
+                        <h3>@favorite.FullName</h3>
+                        <p class="favorite-city">@favorite.City</p>
+
+                        @if (favorite.Skills.Count == 0)
+                        {
+                            <p class="field-note">Henüz yetenek eklememiş.</p>
+                        }
+                        else
+                        {
+                            <ul class="skill-chips">
+                                @foreach (var skill in favorite.Skills)
+                                {
+                                    <li class="skill-chip">@skill</li>
+                                }
+                            </ul>
+                        }
+
+                        <div class="favorite-actions">
+                            @* Profildeki "Randevu Al" ile aynı sayfa; yetenek orada seçilir. Kurallar sunucuda yeniden kontrol edilir. *@
+                            @if (favorite.Skills.Count > 0)
+                            {
+                                <a class="fancy-btn fancy-btn-sm fancy-btn-primary" href="@Url.Page("/Appointments/Create", new { instructorId = favorite.UserId })">Randevu Al</a>
+                            }
+                            else
+                            {
+                                <button type="button" class="fancy-btn fancy-btn-sm fancy-btn-primary" disabled title="Bu üyenin henüz yeteneği yok">Randevu Al</button>
+                            }
+                            <form method="post" asp-page-handler="Remove">
+                                <input type="hidden" name="instructorId" value="@favorite.UserId" />
+                                <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-secondary">Favorilerden Çıkar</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>

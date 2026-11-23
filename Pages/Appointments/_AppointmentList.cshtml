@@ -1,0 +1,243 @@
+@model YetenekPlatformu.Pages.Appointments.AppointmentListViewModel
+@using System.Globalization
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@{
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+}
+
+@* Stiller: wwwroot/css/site.css -> "Randevu listeleri" *@
+@* İşlem hatası, kartı seçili filtrede görünmeyen bir randevudan geldiyse mesaj listenin üstünde gösterilir *@
+@if (Model.ErrorMessage is not null && !Model.Rows.Any(r => r.Id == Model.ErrorAppointmentId))
+{
+    <p class="text-danger appointment-error appointment-list-error" role="alert">@Model.ErrorMessage</p>
+}
+@if (Model.TotalCount == 0)
+{
+    <p class="empty-state">@Model.EmptyText</p>
+}
+else if (Model.Rows.Count == 0)
+{
+    @* Randevu var ama seçili filtreye uyan yok *@
+    <div class="empty-state">
+        <p>Bu filtreye uyan randevu yok.</p>
+        <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" href="@Url.Page(null)">Filtreyi temizle</a>
+    </div>
+}
+else
+{
+    <div class="appointment-list">
+        @foreach (var row in Model.Rows)
+        {
+            var end = row.StartTime.AddHours(row.DurationHours);
+            var isPending = row.Status == AppointmentStatus.Pending;
+            // Randevu geçerli: Onaylandı ya da değişiklik önerisi bekliyor (telefon ve link iki tarafa görünür)
+            var isApproved = row.Status is AppointmentStatus.Approved or AppointmentStatus.ChangeProposed;
+            // Bu kişiden yanıt bekleyen öneri: uyarı işareti
+            var awaitsMyAnswer = row.Status == AppointmentStatus.ChangeProposed && !row.ProposedByMe;
+
+            <article class="appointment-item" id="randevu-@row.Id">
+                <div class="appointment-item-head">
+                    <h3>
+                        @if (row.OtherPartyName is null)
+                        {
+                            <span class="deleted-member">Silinmiş Üye</span>
+                        }
+                        else
+                        {
+                            <a href="@Url.Page("/Members/Profile", new { id = row.OtherPartyId })">@row.OtherPartyName</a>
+                        }
+                    </h3>
+                    <span class="appointment-badges">
+                        @* Bu sayfa açılmadan önce görülmemiş değişiklik (açılınca "görüldü" olur, yenileyince etiket kalkar) *@
+                        @if (row.IsNew)
+                        {
+                            <span class="new-badge">Yeni</span>
+                        }
+                        <span class="status-badge status-@row.Status.ToString().ToLowerInvariant()">@if (awaitsMyAnswer)
+                            {<span aria-hidden="true">⚠ </span>}@AppointmentResponseService.StatusName(row.Status)</span>
+                    </span>
+                </div>
+
+                <dl class="appointment-details">
+                    <div><dt>Yetenek</dt><dd>@row.SkillName</dd></div>
+                    <div><dt>Gün</dt><dd>@row.StartTime.ToString("d MMMM yyyy, dddd", tr)</dd></div>
+                    <div><dt>Saat</dt><dd>@row.StartTime.ToString("HH:mm", tr)–@end.ToString("HH:mm", tr)</dd></div>
+                    <div><dt>Süre</dt><dd>@row.DurationHours saat</dd></div>
+                    <div><dt>Görüşme</dt><dd>@(row.MeetingType == MeetingType.Online ? "Online" : "Yüz Yüze")</dd></div>
+                </dl>
+
+                @* Yüz Yüze buluşma yeri: bu liste yalnızca randevunun iki tarafına gösterilir.
+                   Harita bağlantısı yalnızca listeden seçilmiş (koordinatlı) yerde, sayılardan oluşturulur. *@
+                @if (row.MeetingType == MeetingType.FaceToFace)
+                {
+                    <p class="appointment-place">
+                        <span class="appointment-contact-label">Buluşma yeri</span>
+                        @if (row.PlaceName is null)
+                        {
+                            <span class="field-note">Belirtilmedi</span>
+                        }
+                        else
+                        {
+                            <span>@row.PlaceName</span>
+                            @if (row.PlaceLatitude is decimal placeLat && row.PlaceLongitude is decimal placeLon)
+                            {
+                                <a class="appointment-map-link" href="@PlaceSearchService.MapUrl(placeLat, placeLon)" target="_blank" rel="noopener noreferrer">Haritada aç</a>
+                            }
+                        }
+                    </p>
+                }
+
+                @* Telefon ve link yalnızca onaylı (ya da öneri bekleyen) randevuda, yalnızca iki tarafa (sunucu başka durumda göndermez) *@
+                @if (isApproved)
+                {
+                    <div class="appointment-contact">
+                        @if (row.OtherPartyPhone is not null)
+                        {
+                            <p><span class="appointment-contact-label">Telefon</span> <a href="tel:@row.OtherPartyPhone.Replace(" ", "")">@row.OtherPartyPhone</a></p>
+                        }
+                        @if (row.MeetingType == MeetingType.Online && row.MeetingLink is not null)
+                        {
+                            <p><span class="appointment-contact-label">Görüşme linki</span> <a href="@row.MeetingLink" target="_blank" rel="noopener noreferrer">@row.MeetingLink</a></p>
+                        }
+                    </div>
+                }
+
+                @if (row.FromWaitlist)
+                {
+                    <p class="field-note">Bu talep bekleme listesinden otomatik oluştu.</p>
+                }
+
+                @* İptal: kimin iptal ettiği ve isteğe bağlı neden iki tarafa da gösterilir *@
+                @if (row.Status == AppointmentStatus.Cancelled)
+                {
+                    <div class="appointment-cancel-info">
+                        <p><span class="appointment-contact-label">İptal eden</span> @(row.CancelledByMe ? "Siz" : row.OtherPartyName ?? "Silinmiş Üye")</p>
+                        @if (row.CancelReason is not null)
+                        {
+                            <p><span class="appointment-contact-label">Neden</span> @row.CancelReason</p>
+                        }
+                    </div>
+                }
+
+                @* Değişiklik önerisi: önerilen yeni saat. Yanıt bekleyen taraf Kabul Et / Reddet, öneren Öneriyi Geri Çek görür.
+                   Sunucu yetkiyi, durumu ve süreyi işlem anında yeniden kontrol eder. *@
+                @if (row.Status == AppointmentStatus.ChangeProposed && row.ProposedStartTime is DateTime proposedStart)
+                {
+                    var proposedHours = row.ProposedDurationHours ?? 1;
+                    <div class="appointment-proposal @(awaitsMyAnswer ? "is-waiting" : "")">
+                        <p class="appointment-proposal-title">
+                            @if (awaitsMyAnswer)
+                            {
+                                <span aria-hidden="true">⚠</span> @:Yeni gün/saat önerildi, yanıtınız bekleniyor
+                            }
+                            else
+                            {
+                                @:Değişiklik öneriniz yanıt bekliyor
+                            }
+                        </p>
+                        @if (proposedStart != row.StartTime || proposedHours != row.DurationHours)
+                        {
+                            <p><span class="appointment-contact-label">Önerilen saat</span> @proposedStart.ToString("d MMMM yyyy, dddd", tr) · @proposedStart.ToString("HH:mm", tr)–@proposedStart.AddHours(proposedHours).ToString("HH:mm", tr) (@proposedHours saat)</p>
+                        }
+                        else
+                        {
+                            <p><span class="appointment-contact-label">Saat</span> Değişmiyor</p>
+                        }
+                        @* Önerilen yer: "eski yer → yeni yer"; harita bağlantısı yalnızca yeni yerde (listeden seçildiyse) *@
+                        @if (row.ProposedPlaceName is not null)
+                        {
+                            <p class="appointment-proposal-place">
+                                <span class="appointment-contact-label">Buluşma yeri</span>
+                                <span class="proposal-old-place">@(row.PlaceName ?? "Belirtilmedi")</span>
+                                <span aria-hidden="true">→</span><span class="visually-hidden">yerine</span>
+                                <strong>@row.ProposedPlaceName</strong>
+                                @if (row.ProposedPlaceLatitude is decimal newLat && row.ProposedPlaceLongitude is decimal newLon)
+                                {
+                                    <a class="appointment-map-link" href="@PlaceSearchService.MapUrl(newLat, newLon)" target="_blank" rel="noopener noreferrer">Haritada aç</a>
+                                }
+                            </p>
+                        }
+                        <p><span class="appointment-contact-label">Öneren</span> @(row.ProposedByMe ? "Siz" : row.OtherPartyName)</p>
+                        <div class="appointment-proposal-actions">
+                            @if (awaitsMyAnswer)
+                            {
+                                <form method="post" asp-page-handler="AcceptChange" asp-route-status="@Model.Filter.StatusValue" asp-route-time="@Model.Filter.TimeValue" asp-fragment="randevu-@row.Id">
+                                    <input type="hidden" name="id" value="@row.Id" />
+                                    <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-primary">Kabul Et</button>
+                                </form>
+                                <form method="post" asp-page-handler="RejectChange" asp-route-status="@Model.Filter.StatusValue" asp-route-time="@Model.Filter.TimeValue" asp-fragment="randevu-@row.Id">
+                                    <input type="hidden" name="id" value="@row.Id" />
+                                    <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-secondary">Reddet</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="WithdrawChange" asp-route-status="@Model.Filter.StatusValue" asp-route-time="@Model.Filter.TimeValue" asp-fragment="randevu-@row.Id">
+                                    <input type="hidden" name="id" value="@row.Id" />
+                                    <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-secondary">Öneriyi Geri Çek</button>
+                                </form>
+                            }
+                        </div>
+                        <p class="field-note">@row.ProposalDeadline?.ToString("d MMMM HH:mm", tr) tarihine kadar yanıtlanmazsa öneri düşer, randevu önceki haliyle devam eder.</p>
+                    </div>
+                }
+
+                @if (Model.ErrorAppointmentId == row.Id && Model.ErrorMessage is not null)
+                {
+                    <p class="text-danger appointment-error" role="alert">@Model.ErrorMessage</p>
+                }
+
+                @* Onaylı randevu: ders başlamadan iki taraf da değişiklik önerebilir *@
+                @if (row.CanPropose)
+                {
+                    <a class="fancy-btn fancy-btn-sm fancy-btn-secondary appointment-propose-link" href="@Url.Page("/Appointments/Propose", new { id = row.Id })">Değişiklik Öner</a>
+                }
+
+                @* Onaylı (ya da öneri bekleyen) randevu: iki taraf da ders başlayana kadar iptal edebilir. Bekleyen talep: gönderen geri çekebilir.
+                   Sunucu işlem anında bütün kuralları yeniden kontrol eder. *@
+                @if (row.CanCancel)
+                {
+                    var cancelLabel = isPending ? "Talebi Geri Çek" : "İptal Et";
+                    <details class="appointment-cancel" open="@(Model.ErrorAppointmentId == row.Id && Model.CancelFailed)">
+                        <summary class="fancy-btn fancy-btn-sm fancy-btn-danger">@cancelLabel</summary>
+                        <form method="post" asp-page-handler="Cancel" asp-route-status="@Model.Filter.StatusValue" asp-route-time="@Model.Filter.TimeValue" asp-fragment="randevu-@row.Id" novalidate class="appointment-cancel-form">
+                            <input type="hidden" name="id" value="@row.Id" />
+                            <label class="form-label" for="reason-@row.Id">İptal nedeni <span class="field-hint">isteğe bağlı, karşı tarafa gösterilir</span></label>
+                            <input id="reason-@row.Id" name="reason" type="text" class="form-control" maxlength="@AppointmentResponseService.CancelReasonMaxLength"
+                                   autocomplete="off" value="@(Model.ErrorAppointmentId == row.Id ? Model.EnteredReason : null)" />
+                            <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-danger">@(isPending ? "Geri Çekmeyi Onayla" : "İptali Onayla")</button>
+                        </form>
+                    </details>
+                }
+
+                @if (isPending && !Model.AsInstructor)
+                {
+                    <p class="field-note">Yanıt bekleniyor · @row.Deadline.ToString("d MMMM HH:mm", tr) tarihine kadar yanıtlanmazsa talep kapanır.</p>
+                }
+
+                @if (isPending && Model.AsInstructor)
+                {
+                    <div class="appointment-actions">
+                        <form method="post" asp-page-handler="Approve" asp-route-status="@Model.Filter.StatusValue" asp-route-time="@Model.Filter.TimeValue" asp-fragment="randevu-@row.Id" novalidate class="appointment-approve">
+                            <input type="hidden" name="id" value="@row.Id" />
+                            @if (row.MeetingType == MeetingType.Online)
+                            {
+                                <label class="form-label" for="link-@row.Id">Görüşme linki <span class="field-hint">https:// ile başlamalı (Meet, Zoom, Teams...)</span></label>
+                                <input id="link-@row.Id" name="meetingLink" type="url" class="form-control" maxlength="@AppointmentResponseService.MeetingLinkMaxLength"
+                                       placeholder="https://meet.google.com/abc-defg-hij" autocomplete="off"
+                                       value="@(Model.ErrorAppointmentId == row.Id ? Model.EnteredLink : null)" />
+                            }
+                            <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-primary">Onayla</button>
+                        </form>
+                        <form method="post" asp-page-handler="Reject" asp-route-status="@Model.Filter.StatusValue" asp-route-time="@Model.Filter.TimeValue" asp-fragment="randevu-@row.Id" class="appointment-reject">
+                            <input type="hidden" name="id" value="@row.Id" />
+                            <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-danger">Reddet</button>
+                        </form>
+                    </div>
+                    <p class="field-note">@row.Deadline.ToString("d MMMM HH:mm", tr) tarihine kadar yanıtlanmazsa talep kapanır.</p>
+                }
+            </article>
+        }
+    </div>
+}

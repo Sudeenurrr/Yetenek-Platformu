@@ -1,0 +1,53 @@
+@using YetenekPlatformu.Data
+@{
+    // Açık sekme: ViewData["ProfileTab"] (ana sayfada boş, hiçbiri seçili değil)
+    var active = ViewData["ProfileTab"] as string;
+    // "cards": ana sayfadaki simgeli kartlar; boş: profil sayfalarındaki sekme çubuğu
+    var asCards = ViewData["ProfileTabsVariant"] as string == "cards";
+    var isAdmin = User.IsInRole(AppRoles.Admin);
+
+    // Simgeler sabit SVG çizimleridir (kullanıcı verisi değil)
+    var all = new[]
+    {
+        (Key: "Info", Page: "/Account/Profile/Index", Label: "Kişisel Bilgilerim", Text: "Telefon, IBAN, şehir ve şifreniz",
+            Icon: "<circle cx=\"12\" cy=\"8\" r=\"4\" /><path d=\"M4 21c0-4 3.6-6 8-6s8 2 8 6\" />"),
+        (Key: "Skills", Page: "/Account/Profile/Skills", Label: "Yeteneklerim", Text: "Paylaşabileceğiniz yetenekler",
+            Icon: "<path d=\"M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4l-5.3 3 1.2-6L3.4 9.3l6-.7z\" />"),
+        (Key: "LessonsGiven", Page: "/Account/Profile/LessonsGiven", Label: "Verdiğim Dersler", Text: "Tamamladığınız dersler ve saatler",
+            Icon: "<rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"2\" /><path d=\"M8 20h8M12 16v4\" />"),
+        (Key: "LessonsTaken", Page: "/Account/Profile/LessonsTaken", Label: "Aldığım Dersler", Text: "Katıldığınız dersler",
+            Icon: "<path d=\"M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z\" /><path d=\"M9 7h6\" />"),
+        (Key: "Favorites", Page: "/Account/Profile/Favorites", Label: "Favorilerim", Text: "Beğendiğiniz kişiler",
+            Icon: "<path d=\"M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z\" />")
+    };
+
+    // Admin yalnızca paneli kullanır; profilde sadece kişisel bilgiler sekmesi görünür
+    var tabs = isAdmin ? all.Take(1) : all;
+}
+
+@* Stiller: wwwroot/css/site.css -> "Profil" ve "Ana sayfa kartları" *@
+@if (asCards)
+{
+    <nav class="profile-cards" aria-label="Profil bölümleri">
+        @foreach (var tab in tabs)
+        {
+            <a class="profile-card" href="@Url.Page(tab.Page)">
+                <span class="profile-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">@Html.Raw(tab.Icon)</svg>
+                </span>
+                <span class="profile-card-title">@tab.Label</span>
+                <span class="profile-card-text">@tab.Text</span>
+            </a>
+        }
+    </nav>
+}
+else
+{
+    <nav class="profile-tabs" aria-label="Profil bölümleri">
+        @foreach (var tab in tabs)
+        {
+            <a class="profile-tab @(tab.Key == active ? "is-active" : "")" href="@Url.Page(tab.Page)"
+               aria-current="@(tab.Key == active ? "page" : null)">@tab.Label</a>
+        }
+    </nav>
+}

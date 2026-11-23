@@ -1,0 +1,144 @@
+@page
+@model YetenekPlatformu.Pages.Account.Profile.IndexModel
+@{
+    ViewData["Title"] = "Kişisel Bilgilerim";
+    ViewData["ProfileTab"] = "Info";
+}
+
+<div class="profile-shell">
+    <partial name="_ProfileHeader" />
+
+    <section class="profile-panel">
+        <h2 class="profile-section-title">Kişisel Bilgilerim</h2>
+
+        <form method="post" asp-page-handler="UpdateInfo" novalidate class="account-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="profile-grid">
+                <div class="mb-3">
+                    <label class="form-label" for="first-name">Ad <span class="field-hint">değiştirilemez</span></label>
+                    <input id="first-name" class="form-control" value="@Model.CurrentUser.FirstName" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="last-name">Soyad <span class="field-hint">değiştirilemez</span></label>
+                    <input id="last-name" class="form-control" value="@Model.CurrentUser.LastName" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Info.PhoneNumber" class="form-label">Telefon</label>
+                    @* "+90 5" sabittir; kalan 9 rakam "55 555 55 55" biçiminde (wwwroot/js/input-format.js) *@
+                    <div class="input-prefix-group">
+                        <span class="input-prefix" aria-hidden="true">+90 5</span>
+                        <input asp-for="Info.PhoneNumber" class="form-control" type="tel" inputmode="numeric" maxlength="17"
+                               placeholder="55 555 55 55" data-format="phone" aria-label="Telefon, +90 5'ten sonraki 9 rakam" />
+                    </div>
+                    <span asp-validation-for="Info.PhoneNumber" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Info.Iban" class="form-label">IBAN <span class="field-hint">TR'den sonra 7 rakam</span></label>
+                    <div class="input-prefix-group">
+                        <span class="input-prefix" aria-hidden="true">TR</span>
+                        <input asp-for="Info.Iban" class="form-control" inputmode="numeric" maxlength="9"
+                               placeholder="1234567" data-format="iban" aria-label="IBAN, TR'den sonraki 7 rakam" />
+                    </div>
+                    <span asp-validation-for="Info.Iban" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Info.City" class="form-label">Şehir</label>
+                    <select asp-for="Info.City" class="form-select">
+                        <option value="">-- Şehir seçin --</option>
+                        @foreach (var city in Model.Cities)
+                        {
+                            <option value="@city">@city</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Info.City" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="fancy-btn fancy-btn-primary">Bilgilerimi Kaydet</button>
+            </div>
+        </form>
+    </section>
+
+    @* id: form bu işaretli adrese gönderilir, sonuçta sayfa doğrudan bu bölümden açılır *@
+    <section class="profile-panel" id="sifre-degistir">
+        <h2 class="profile-section-title">Şifre Değiştir</h2>
+
+        @if (TempData["PasswordStatusMessage"] is string passwordStatus)
+        {
+            <p class="profile-status" role="status">@passwordStatus</p>
+        }
+
+        <form method="post" asp-page-handler="ChangePassword" asp-fragment="sifre-degistir" novalidate class="account-form">
+            <div class="profile-grid">
+                <div class="mb-3">
+                    <label asp-for="PasswordInput.CurrentPassword" class="form-label">Mevcut Şifre</label>
+                    <input asp-for="PasswordInput.CurrentPassword" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="PasswordInput.CurrentPassword" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="PasswordInput.NewPassword" class="form-label">Yeni Şifre <span class="field-hint">en az 6 karakter</span></label>
+                    <input asp-for="PasswordInput.NewPassword" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="PasswordInput.NewPassword" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="fancy-btn fancy-btn-secondary">Şifremi Değiştir</button>
+            </div>
+        </form>
+    </section>
+
+    @* Şifremi unuttum için kurtarma kodu: yenilenince yalnızca bir kez gösterilir *@
+    <section class="profile-panel" id="kurtarma-kodu">
+        <h2 class="profile-section-title">Kurtarma Kodu</h2>
+
+        @if (TempData["NewRecoveryCode"] is string newRecoveryCode)
+        {
+            <p class="profile-status" role="status">Yeni kurtarma kodunuz oluşturuldu. Eski kodunuz artık geçersiz.</p>
+            <p>Kodu güvenli bir yere yazın; <strong>bir daha gösterilmeyecek</strong>.</p>
+            <p class="recovery-code" aria-label="Yeni kurtarma kodunuz">@newRecoveryCode</p>
+        }
+        else if (Model.HasRecoveryCode)
+        {
+            <p>Kurtarma kodunuz var. Şifrenizi unutursanız "Şifremi unuttum" sayfasında bu kodla yeni şifre belirleyebilirsiniz.</p>
+        }
+        else
+        {
+            <p>Henüz kurtarma kodunuz yok. Şifrenizi unutursanız sıfırlayabilmek için bir kod oluşturun.</p>
+        }
+
+        <form method="post" asp-page-handler="RegenerateRecoveryCode" asp-fragment="kurtarma-kodu" novalidate class="account-form">
+            <div class="profile-grid">
+                <div class="mb-3">
+                    <label asp-for="RecoveryInput.CurrentPassword" class="form-label">Mevcut Şifre</label>
+                    <input asp-for="RecoveryInput.CurrentPassword" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="RecoveryInput.CurrentPassword" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="fancy-btn fancy-btn-secondary">@(Model.HasRecoveryCode ? "Kurtarma Kodunu Yenile" : "Kurtarma Kodu Oluştur")</button>
+            </div>
+        </form>
+    </section>
+
+    @if (Model.CanCancelMembership)
+    {
+        <section class="profile-panel profile-danger-zone">
+            <h2 class="profile-section-title">Üyelik</h2>
+            <p>Üyeliğinizi iptal ederseniz bilgileriniz kalıcı olarak silinir.</p>
+            <a class="fancy-btn fancy-btn-danger" asp-page="/Account/Delete">Üyeliğimi İptal Et</a>
+        </section>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/input-format.js" asp-append-version="true"></script>
+}

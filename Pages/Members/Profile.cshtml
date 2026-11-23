@@ -1,0 +1,84 @@
+@page
+@model YetenekPlatformu.Pages.Members.ProfileModel
+@{
+    ViewData["Title"] = Model.Found ? Model.FullName : "Üye Bulunamadı";
+    var returnUrl = Request.Path + Request.QueryString;
+}
+
+@* Stiller: wwwroot/css/site.css -> "Arama" ve "Üye profili" *@
+<div class="search-shell">
+    @if (!Model.Found)
+    {
+        <h1 class="account-title">Üye Bulunamadı</h1>
+        <p class="empty-state">Aradığınız üye bulunamadı. Üyeliğini iptal etmiş olabilir.</p>
+        <div class="form-actions member-profile-back">
+            <a class="fancy-btn fancy-btn-secondary" href="@Url.Page("/Search")">Aramaya Dön</a>
+        </div>
+    }
+    else
+    {
+        @if (TempData["StatusMessage"] is string statusMessage)
+        {
+            <p class="profile-status" role="status">@statusMessage</p>
+        }
+
+        <section class="profile-panel member-profile">
+            <div class="member-card-head">
+                <span class="member-avatar member-avatar-lg" aria-hidden="true">@Model.FullName[0]</span>
+                <div>
+                    <h1 class="member-profile-name">@Model.FullName</h1>
+                    <p class="member-city">@Model.City</p>
+                </div>
+            </div>
+
+            <p class="member-hours"><strong>@Model.TotalHours saat</strong> toplam ders verdi</p>
+            @if (Model.Skills.Count == 0)
+            {
+                <p class="field-note">Bu üyenin henüz yeteneği yok, randevu alınamaz.</p>
+            }
+
+            <div class="member-card-actions">
+                @* Randevu yalnızca üyenin eklediği yeteneklerden biri için alınabilir *@
+                @if (Model.Skills.Count > 0)
+                {
+                    <a class="fancy-btn fancy-btn-primary" href="@Url.Page("/Appointments/Create", new { instructorId = Model.Id })">Randevu Al</a>
+                }
+                else
+                {
+                    <button type="button" class="fancy-btn fancy-btn-primary" disabled title="Bu üyenin henüz yeteneği yok">Randevu Al</button>
+                }
+                <form method="post" asp-page="/Members/Favorite">
+                    <input type="hidden" name="memberId" value="@Model.Id" />
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <button type="submit" class="fav-btn fav-btn-wide @(Model.IsFavorite ? "is-fav" : "")" aria-pressed="@(Model.IsFavorite ? "true" : "false")">
+                        <span aria-hidden="true">♥</span> @(Model.IsFavorite ? "Favorilerde" : "Favorilere Ekle")
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section class="profile-panel">
+            <h2 class="profile-section-title">Yetenekleri</h2>
+            @if (Model.Skills.Count == 0)
+            {
+                <p class="empty-state">Henüz yetenek eklememiş.</p>
+            }
+            else
+            {
+                <ul class="member-skill-list">
+                    @foreach (var skill in Model.Skills)
+                    {
+                        <li>
+                            <span class="skill-chip">@skill.Name</span>
+                            <span class="member-skill-hours">@skill.Hours saat ders</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <div class="member-profile-back">
+            <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" href="@Url.Page("/Search")">Aramaya Dön</a>
+        </div>
+    }
+</div>

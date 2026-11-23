@@ -1,0 +1,42 @@
+@page
+@model YetenekPlatformu.Pages.Account.RecoveryCodeModel
+@using YetenekPlatformu.Services
+@{
+    ViewData["Title"] = "Kurtarma Kodu";
+    var afterReset = Model.Context == RecoveryCodeService.ContextReset;
+}
+
+@* Stiller: wwwroot/css/site.css -> "Hesap formları" ve "Kurtarma kodu" *@
+<div class="account-card">
+    <h1 class="account-title">Kurtarma Kodu</h1>
+
+    @if (Model.Code is null)
+    {
+        <p class="empty-state">Gösterilecek bir kurtarma kodu yok. Kod yalnızca bir kez gösterilir.</p>
+        <div class="form-actions">
+            <a class="fancy-btn fancy-btn-primary" asp-page="/Index">Ana Sayfa</a>
+        </div>
+    }
+    else
+    {
+        @if (afterReset)
+        {
+            <p class="profile-status" role="status">Şifreniz değiştirildi. Eski kurtarma kodunuz artık geçersiz.</p>
+        }
+
+        <p>Şifrenizi unutursanız yalnızca bu kodla sıfırlayabilirsiniz. Kodu güvenli bir yere yazın; <strong>bir daha gösterilmeyecek</strong>.</p>
+        <p class="recovery-code" aria-label="Kurtarma kodunuz">@Model.Code</p>
+        <p class="field-note">Kodu kaybederseniz giriş yaptıktan sonra Profilim → Kişisel Bilgilerim sayfasından yenisini üretebilirsiniz.</p>
+
+        <div class="form-actions">
+            @if (afterReset)
+            {
+                <a class="fancy-btn fancy-btn-primary" asp-page="/Account/Login">Kodu kaydettim, giriş yap</a>
+            }
+            else
+            {
+                <a class="fancy-btn fancy-btn-primary" asp-page="/Index">Kodu kaydettim, devam et</a>
+            }
+        </div>
+    }
+</div>

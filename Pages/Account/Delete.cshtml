@@ -1,0 +1,41 @@
+@page
+@model YetenekPlatformu.Pages.Account.DeleteModel
+@{
+    ViewData["Title"] = "Üyeliğimi İptal Et";
+}
+
+<h1>Üyeliğimi İptal Et</h1>
+
+@if (Model.IsAdmin)
+{
+    <p class="text-danger">Admin hesaplarının üyeliği iptal edilemez.</p>
+}
+else
+{
+    <p>Üyeliğinizi iptal ederseniz:</p>
+    <ul>
+        <li>Ad, soyad, telefon, IBAN ve şehir bilgileriniz kalıcı olarak silinir.</li>
+        <li>Bekleyen ve onaylanmış randevularınız iptal edilir; karşı tarafa "Üyelik silindi" olarak gösterilir.</li>
+        <li>Yetenekleriniz, favorileriniz ve bekleme listesi kayıtlarınız silinir.</li>
+        <li>Geçmiş dersler ve ödemeler karşı tarafın kayıtlarında "Silinmiş Üye" olarak kalır.</li>
+        <li>Bu işlem geri alınamaz. Daha sonra aynı ad ve soyadla yeniden kayıt olabilirsiniz.</li>
+    </ul>
+
+    <form method="post" novalidate class="account-form">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Password" class="form-label">Onaylamak için şifrenizi girin</label>
+            <input asp-for="Password" class="form-control" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="fancy-btn fancy-btn-danger">Üyeliğimi İptal Et</button>
+            <span class="form-alt">
+                <span class="form-alt-text">Fikrinizi mi değiştirdiniz?</span>
+                <a class="fancy-btn fancy-btn-secondary" asp-page="/Account/Profile/Index">Vazgeç</a>
+            </span>
+        </div>
+    </form>
+}

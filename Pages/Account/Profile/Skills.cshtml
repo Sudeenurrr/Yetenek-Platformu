@@ -1,0 +1,58 @@
+@page
+@model YetenekPlatformu.Pages.Account.Profile.SkillsModel
+@{
+    ViewData["Title"] = "Yeteneklerim";
+    ViewData["ProfileTab"] = "Skills";
+}
+
+<div class="profile-shell">
+    <partial name="_ProfileHeader" />
+
+    <section class="profile-panel">
+        <h2 class="profile-section-title">Yeteneklerim</h2>
+
+        @* Arama kutusu: wwwroot/js/autocomplete.js *@
+        <form method="post" asp-page-handler="Add" id="skill-add-form" class="account-form" autocomplete="off">
+            <label for="skill-search-input" class="form-label">Yetenek Ekle <span class="field-hint">en az 2 harf yazın</span></label>
+            <div class="skill-search-box">
+                <input id="skill-search-input" type="text" class="form-control"
+                       placeholder="Yetenek adı yazın..." maxlength="100"
+                       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="skill-search-results"
+                       data-autocomplete data-search-url="@Url.Page("/Account/Profile/Skills", "Search")"
+                       data-hidden-id="skill-search-id" data-empty-text="Eşleşen yetenek bulunamadı."
+                       disabled="@Model.SkillCatalogEmpty" />
+                <ul id="skill-search-results" class="skill-search-results" role="listbox" hidden></ul>
+            </div>
+            <input type="hidden" name="skillId" id="skill-search-id" />
+
+            @if (Model.SkillCatalogEmpty)
+            {
+                <p class="field-note">Yetenek listesi henüz yüklenmedi. Liste eklendiğinde buradan arayıp yetenek ekleyebileceksiniz.</p>
+            }
+        </form>
+
+        @if (Model.MySkills.Count == 0)
+        {
+            <p class="empty-state">Henüz yetenek eklemediniz.</p>
+        }
+        else
+        {
+            <ul class="skill-chips">
+                @foreach (var skill in Model.MySkills)
+                {
+                    <li class="skill-chip">
+                        <span>@skill.Name</span>
+                        <form method="post" asp-page-handler="Remove">
+                            <input type="hidden" name="skillId" value="@skill.Id" />
+                            <button type="submit" class="skill-chip-remove" aria-label="@skill.Name yeteneğini kaldır" title="Kaldır">&times;</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/autocomplete.js" asp-append-version="true"></script>
+}

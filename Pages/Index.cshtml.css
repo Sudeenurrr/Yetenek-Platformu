@@ -1,0 +1,269 @@
+/* Ana sayfa stilleri (yalnızca Index.cshtml'e uygulanır) */
+
+.home {
+    --home-primary: #4f46e5;
+    --home-accent: #0d9488;
+    --home-ink: #1f2937;
+    --home-muted: #4b5563;
+    --home-surface: #ffffff;
+    --home-border: #e5e7eb;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem 0 3rem;
+    color: var(--home-ink);
+}
+
+/* ---- Karşılama ---- */
+.hero {
+    text-align: center;
+    padding: 3rem 1rem 2rem;
+}
+
+/* Büyük harf: sayfa lang="tr" olduğu için Türkçe kurala uyar (i -> İ) */
+.hero-title {
+    font-size: clamp(2.25rem, 6.5vw, 4rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 1rem;
+    background: linear-gradient(90deg, var(--home-primary), var(--home-accent), var(--home-primary));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: fade-up 0.8s ease-out both, shimmer 6s linear 0.8s infinite;
+}
+
+.hero-text {
+    max-width: 640px;
+    margin: 0 auto;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--home-muted);
+    animation: fade-up 0.8s ease-out 0.25s both;
+}
+
+/* ---- Katılım kartı: kapak gibi açılır ---- */
+.join-card {
+    max-width: 560px;
+    margin: 1.5rem auto 4rem;
+    padding: 2rem;
+    text-align: center;
+    border-radius: 1.25rem;
+    background: var(--home-surface);
+    border: 1px solid var(--home-border);
+    box-shadow: 0 20px 40px -20px rgba(79, 70, 229, 0.45);
+    transform-origin: top center;
+    animation: card-open 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s both;
+}
+
+.join-card h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+}
+
+.join-card p {
+    color: var(--home-muted);
+    margin-bottom: 1.5rem;
+}
+
+.join-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.join-btn {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+    isolation: isolate;
+    padding: 0.8rem 1.9rem;
+    border-radius: 999px;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-decoration: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, color 0.3s ease, letter-spacing 0.3s ease;
+}
+
+/* Üzerine gelince yükselir, harfler hafifçe açılır */
+.join-btn:hover {
+    transform: translateY(-3px);
+    letter-spacing: 0.16em;
+}
+
+/* Tıklayınca içeri basılmış gibi */
+.join-btn:active {
+    transform: translateY(0) scale(0.97);
+}
+
+.join-btn:focus-visible {
+    outline: 3px solid var(--home-accent);
+    outline-offset: 3px;
+}
+
+/* Kayıt Ol: renk geçişi kayar ve üzerinden ışık süzülür */
+.join-btn-primary {
+    color: #fff;
+    background: linear-gradient(90deg, var(--home-primary), var(--home-accent), var(--home-primary));
+    background-size: 200% auto;
+    animation: pulse 2.4s ease-in-out 1.6s infinite;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, letter-spacing 0.3s ease, background-position 0.6s ease;
+}
+
+.join-btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+    transform: translateX(-120%);
+}
+
+.join-btn-primary:hover {
+    animation: none; /* nabız efekti, üzerine gelince parlama gölgesine bırakır */
+    background-position: right center;
+    box-shadow: 0 12px 24px -8px rgba(79, 70, 229, 0.6);
+}
+
+.join-btn-primary:hover::before {
+    transform: translateX(120%);
+    transition: transform 0.75s ease;
+}
+
+/* Giriş Yap: soldan sağa renkle dolar, yazı beyazlaşır */
+.join-btn-secondary {
+    color: var(--home-primary);
+    border: 2px solid var(--home-primary);
+}
+
+.join-btn-secondary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, var(--home-primary), var(--home-accent));
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.35s ease;
+}
+
+.join-btn-secondary:hover {
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 12px 24px -8px rgba(13, 148, 136, 0.55);
+}
+
+.join-btn-secondary:hover::before {
+    transform: scaleX(1);
+}
+
+/* ---- Neden katılmalısınız? ---- */
+.why-title {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2rem;
+}
+
+.why-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+}
+
+.why-item {
+    padding: 1.5rem;
+    border-radius: 1rem;
+    background: var(--home-surface);
+    border: 1px solid var(--home-border);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.why-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -12px rgba(13, 148, 136, 0.5);
+}
+
+.why-item svg {
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-bottom: 0.75rem;
+    fill: none;
+    stroke: var(--home-accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.why-item h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.why-item p {
+    color: var(--home-muted);
+    margin: 0;
+}
+
+/* Kaydırınca belirme: yalnızca JavaScript çalışıyorsa gizlenir (home.js "reveal-ready" ekler) */
+.home.reveal-ready .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    transition-delay: var(--reveal-delay, 0s);
+}
+
+.home.reveal-ready .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* Hareketli arka plan artık bütün sayfalarda: wwwroot/css/site.css -> "Site arka planı" */
+
+/* ---- Animasyonlar ---- */
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes shimmer {
+    to { background-position: 200% center; }
+}
+
+@keyframes card-open {
+    0% { opacity: 0; transform: perspective(800px) rotateX(-70deg) scale(0.9); }
+    60% { opacity: 1; transform: perspective(800px) rotateX(8deg) scale(1.01); }
+    100% { opacity: 1; transform: perspective(800px) rotateX(0) scale(1); }
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.45); }
+    50% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+}
+
+/* Hareket azaltma tercih edenlere animasyon yok */
+@media (prefers-reduced-motion: reduce) {
+    .hero-title, .hero-text, .join-card, .join-btn-primary {
+        animation: none;
+    }
+
+    .join-btn, .join-btn::before, .join-btn-primary:hover::before {
+        transition: none;
+    }
+
+    .home.reveal-ready .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

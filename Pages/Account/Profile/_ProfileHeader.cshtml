@@ -1,0 +1,9 @@
+@* Profil sayfalarının ortak başlığı: başlık + sekmeler (Shared/_ProfileTabs) + durum mesajı *@
+<h1 class="account-title">Profilim</h1>
+
+<partial name="_ProfileTabs" />
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <p class="profile-status" role="status">@statusMessage</p>
+}

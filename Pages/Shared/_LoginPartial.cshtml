@@ -1,0 +1,52 @@
+@using Microsoft.AspNetCore.Identity
+@using YetenekPlatformu.Data
+@using YetenekPlatformu.Models
+@using YetenekPlatformu.Services
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AppointmentNotificationService Notifications
+@{
+    // Kırmızı nokta sunucuda hesaplanır (yalnızca üyeler; admin'de yok). Sayfa açıkken notifications.js 60 sn'de bir yeniler.
+    var isMember = SignInManager.IsSignedIn(User) && !User.IsInRole(AppRoles.Admin);
+    var unseen = isMember ? await Notifications.GetAsync(UserManager.GetUserId(User)!) : null;
+}
+
+@* Menünün sağ tarafı: giriş durumuna göre linkler. Buton stilleri: wwwroot/css/site.css -> "Ortak efektli buton" *@
+<ul class="navbar-nav nav-actions">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        @* "Merhaba, Ad" artık ana sayfada büyük başlık olarak görünüyor. Admin arama yapmaz. *@
+        @if (!User.IsInRole(AppRoles.Admin))
+        {
+            <li class="nav-item">
+                <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" asp-page="/Search">Ara</a>
+            </li>
+            @* Nokta butonun dışında durur (buton taşanı kırpar); ekran okuyucu yazısı bağlantının içindedir *@
+            <li class="nav-item nav-item-dot">
+                <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" asp-page="/Appointments/Incoming">Randevu İstekleri<span class="visually-hidden" data-unseen-dot="incoming" hidden="@(!unseen!.Incoming)"> (görülmemiş değişiklik var)</span></a>
+                <span class="nav-dot" data-unseen-dot="incoming" hidden="@(!unseen!.Incoming)" aria-hidden="true"></span>
+            </li>
+            <li class="nav-item nav-item-dot">
+                <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" asp-page="/Appointments/Sent">Gönderdiğim Randevular<span class="visually-hidden" data-unseen-dot="sent" hidden="@(!unseen!.Sent)"> (görülmemiş değişiklik var)</span></a>
+                <span class="nav-dot" data-unseen-dot="sent" hidden="@(!unseen!.Sent)" aria-hidden="true"></span>
+            </li>
+        }
+        <li class="nav-item">
+            <a class="fancy-btn fancy-btn-sm fancy-btn-primary" asp-page="/Account/Profile/Index">Profilim</a>
+        </li>
+        <li class="nav-item">
+            <form method="post" asp-page="/Account/Logout" class="d-inline">
+                <button type="submit" class="fancy-btn fancy-btn-sm fancy-btn-secondary">Çıkış Yap</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="fancy-btn fancy-btn-sm fancy-btn-primary" asp-page="/Account/Register">Kayıt Ol</a>
+        </li>
+        <li class="nav-item">
+            <a class="fancy-btn fancy-btn-sm fancy-btn-secondary" asp-page="/Account/Login">Giriş Yap</a>
+        </li>
+    }
+</ul>

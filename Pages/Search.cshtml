@@ -1,0 +1,185 @@
+@page
+@model YetenekPlatformu.Pages.SearchModel
+@{
+    ViewData["Title"] = "Ara";
+    var returnUrl = Request.Path + Request.QueryString;
+}
+
+@* Stiller: wwwroot/css/site.css -> "Arama" *@
+<div class="search-shell">
+    <h1 class="account-title">Ara</h1>
+
+    <nav class="profile-tabs" aria-label="Arama türü">
+        @* Sekme değişince seçili şehir korunur *@
+        <a class="profile-tab @(Model.IsPersonMode ? "" : "is-active")" href="@Url.Page("/Search", new { mode = SearchModel.SkillMode, city = Model.City })"
+           aria-current="@(Model.IsPersonMode ? null : "page")">Yetenek Ara</a>
+        <a class="profile-tab @(Model.IsPersonMode ? "is-active" : "")" href="@Url.Page("/Search", new { mode = SearchModel.PersonMode, city = Model.City })"
+           aria-current="@(Model.IsPersonMode ? "page" : null)">Kişi Ara</a>
+    </nav>
+
+    @if (TempData["StatusMessage"] is string statusMessage)
+    {
+        <p class="profile-status" role="status">@statusMessage</p>
+    }
+
+    @* Otomatik tamamlama: wwwroot/js/autocomplete.js *@
+    @if (Model.IsPersonMode)
+    {
+        @* Listeden kişi seçilince profiline gidilir; seçmeden Ara'ya basılınca bütün sonuçlar gelir.
+           Ad boşken şehir seçilirse o şehirdeki bütün üyeler gelir. *@
+        <form method="get" class="search-form" role="search" autocomplete="off">
+            <input type="hidden" name="mode" value="@SearchModel.PersonMode" />
+            <div class="skill-search-box">
+                <input id="person-search-input" name="q" value="@Model.Q" class="form-control search-input" maxlength="100"
+                       placeholder="Ad veya soyad yazın..." aria-label="Ad veya soyad"
+                       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="person-search-results"
+                       data-autocomplete data-search-url="@Url.Page("/Search", "People")" data-enter-submits="true"
+                       data-select-url="@Url.Page("/Members/Profile")?id=" data-city-select="search-city"
+                       data-city-submit-empty="true" data-empty-text="Eşleşen üye bulunamadı." />
+                <ul id="person-search-results" class="skill-search-results" role="listbox" hidden></ul>
+            </div>
+            <partial name="_CitySelect" model="Model" />
+            <button type="submit" class="fancy-btn fancy-btn-primary">Ara</button>
+        </form>
+    }
+    else
+    {
+        @* Listeden seçilince ya da seçmeden Ara'ya basılınca o yeteneği ekleyen üyeler doğrudan gelir *@
+        <form method="get" id="skill-add-form" class="search-form" role="search" autocomplete="off">
+            <input type="hidden" name="mode" value="@SearchModel.SkillMode" />
+            <div class="skill-search-box">
+                <input id="skill-search-input" name="q" value="@Model.Q" class="form-control search-input" maxlength="100"
+                       placeholder="Hangi yeteneği öğrenmek istiyorsunuz?" aria-label="Yetenek"
+                       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="skill-search-results"
+                       data-autocomplete data-search-url="@Url.Page("/Search", "Skills")" data-enter-submits="true"
+                       data-hidden-id="skill-search-id" data-empty-text="Eşleşen yetenek bulunamadı."
+                       disabled="@Model.SkillCatalogEmpty" />
+                <ul id="skill-search-results" class="skill-search-results" role="listbox" hidden></ul>
+            </div>
+            @* Sonuç sayfasında seçili yetenek burada kalır: şehir değişince aynı yetenek yeniden aranır.
+               Kutuya yeni bir şey yazılınca autocomplete.js bu alanı boşaltır. *@
+            <input type="hidden" name="skillId" id="skill-search-id" value="@Model.SelectedSkill?.Id" />
+            <partial name="_CitySelect" model="Model" />
+            <button type="submit" class="fancy-btn fancy-btn-primary" disabled="@Model.SkillCatalogEmpty">Ara</button>
+        </form>
+
+        @if (Model.SkillCatalogEmpty)
+        {
+            <p class="empty-state">Yetenek listesi henüz yüklenmedi. Liste eklendiğinde buradan yetenek arayabileceksiniz. Şimdilik <a href="@Url.Page("/Search", new { mode = SearchModel.PersonMode })">Kişi Ara</a> ile üye arayabilirsiniz.</p>
+        }
+    }
+
+    @if (Model.TermTooShort)
+    {
+        <p class="empty-state">Lütfen en az 2 harf yazın.</p>
+    }
+
+    @if (Model.NoSkillMatch)
+    {
+        <p class="empty-state">"@Model.Q" ile eşleşen yetenek bulunamadı.</p>
+    }
+
+    @if (Model.NameOrCityRequired)
+    {
+        <p class="empty-state">Bir ad yazın ya da şehir seçin.</p>
+    }
+
+    @if (Model.Results is not null)
+    {
+        <h2 class="search-results-title">
+            @if (Model.SelectedSkill is not null)
+            {
+                <text>"@Model.SelectedSkill.Name" yeteneğini paylaşan üyeler</text>
+            }
+            else if (string.IsNullOrEmpty(Model.Q))
+            {
+                <text>Seçili şehirdeki üyeler</text>
+            }
+            else
+            {
+                <text>"@Model.Q" için sonuçlar</text>
+            }
+            <span class="search-results-count">@(Model.City is not null ? $"{Model.City} · " : "")@Model.Results.Count üye</span>
+        </h2>
+
+        @* Listeden seçmeden aranınca açılan yetenek dışında uyan diğer yetenekler: yanlışsa tek tıkla geçilir *@
+        @if (Model.OtherMatchingSkills.Count > 0)
+        {
+            <p class="search-other-skills">
+                Diğer eşleşen yetenekler:
+                @foreach (var skill in Model.OtherMatchingSkills)
+                {
+                    <a class="skill-chip skill-chip-link" href="@Url.Page("/Search", new { mode = SearchModel.SkillMode, skillId = skill.Id, city = Model.City })">@skill.Name</a>
+                }
+            </p>
+        }
+
+        @if (Model.Results.Count == 0)
+        {
+            <p class="empty-state">
+                @if (Model.City is not null)
+                {
+                    @(Model.SelectedSkill is not null ? "Seçili şehirde bu yeteneği ekleyen başka üye yok."
+                      : string.IsNullOrEmpty(Model.Q) ? "Seçili şehirde henüz başka üye yok." : "Seçili şehirde eşleşen üye bulunamadı.")
+                }
+                else
+                {
+                    @(Model.SelectedSkill is not null ? "Henüz bu yeteneği ekleyen başka üye yok." : "Eşleşen üye bulunamadı.")
+                }
+            </p>
+        }
+        else
+        {
+            <div class="member-grid">
+                @foreach (var member in Model.Results)
+                {
+                    <article class="member-card">
+                        <div class="member-card-head">
+                            <span class="member-avatar" aria-hidden="true">@member.FullName[0]</span>
+                            <div>
+                                <h3>@member.FullName</h3>
+                                <p class="member-city">@member.City</p>
+                            </div>
+                        </div>
+
+                        <p class="member-hours">
+                            <strong>@member.Hours saat</strong>
+                            @(Model.SelectedSkill is not null ? "bu yetenekte ders verdi" : "toplam ders verdi")
+                        </p>
+
+                        @if (member.Skills.Count > 0)
+                        {
+                            <ul class="skill-chips">
+                                @foreach (var skill in member.Skills.Take(6))
+                                {
+                                    <li class="skill-chip">@skill</li>
+                                }
+                                @if (member.Skills.Count > 6)
+                                {
+                                    <li class="skill-chip skill-chip-more">+@(member.Skills.Count - 6)</li>
+                                }
+                            </ul>
+                        }
+
+                        <div class="member-card-actions">
+                            <a class="fancy-btn fancy-btn-sm fancy-btn-primary" href="@Url.Page("/Members/Profile", new { id = member.Id })">Profili Gör</a>
+                            <form method="post" asp-page="/Members/Favorite">
+                                <input type="hidden" name="memberId" value="@member.Id" />
+                                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                <button type="submit" class="fav-btn @(member.IsFavorite ? "is-fav" : "")" aria-pressed="@(member.IsFavorite ? "true" : "false")"
+                                        title="@(member.IsFavorite ? "Favorilerden çıkar" : "Favorilere ekle")">
+                                    <span aria-hidden="true">♥</span>
+                                    <span class="visually-hidden">@(member.IsFavorite ? "Favorilerden çıkar" : "Favorilere ekle")</span>
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/autocomplete.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,42 @@
+@page
+@model YetenekPlatformu.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Giriş Yap";
+}
+
+@* Stiller: wwwroot/css/site.css -> "Hesap formları" *@
+<div class="account-card">
+    <h1 class="account-title">Giriş Yap</h1>
+
+    <form method="post" novalidate class="account-form">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        <div class="mb-3">
+            <label asp-for="Input.FirstName" class="form-label">Ad</label>
+            <input asp-for="Input.FirstName" class="form-control" autocomplete="given-name" />
+            <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.LastName" class="form-label">Soyad</label>
+            <input asp-for="Input.LastName" class="form-control" autocomplete="family-name" />
+            <span asp-validation-for="Input.LastName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Password" class="form-label">Şifre</label>
+            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" />
+            <span asp-validation-for="Input.Password" class="text-danger"></span>
+            <a class="forgot-password-link" asp-page="/Account/ForgotPassword">Şifremi unuttum</a>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="fancy-btn fancy-btn-primary">Giriş Yap</button>
+            <span class="form-alt">
+                <span class="form-alt-text">Üye değil misiniz?</span>
+                <a class="fancy-btn fancy-btn-secondary" asp-page="/Account/Register">Kayıt Ol</a>
+            </span>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,100 @@
+﻿@page
+@model IndexModel
+@using Microsoft.AspNetCore.Identity
+@using YetenekPlatformu.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Ana Sayfa";
+    var isSignedIn = SignInManager.IsSignedIn(User);
+    var currentUser = isSignedIn ? await UserManager.GetUserAsync(User) : null;
+}
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <p class="alert alert-info">@statusMessage</p>
+}
+
+<div class="home">
+    @if (isSignedIn)
+    {
+        @* Önce selamlama, sonra profil kartları tek tek yukarıdan süzülür *@
+        <section class="hero">
+            <h1 class="hero-title">Merhaba, @currentUser?.FirstName</h1>
+        </section>
+
+        @if (!User.IsInRole(YetenekPlatformu.Data.AppRoles.Admin))
+        {
+            @* Hızlı arama: Arama sayfasını seçilen türde açar (stiller: site.css -> "Ana sayfa arama kutusu") *@
+            <form method="get" action="@Url.Page("/Search")" class="home-search" role="search">
+                <div class="home-search-modes" role="radiogroup" aria-label="Arama türü">
+                    @* data-placeholder: seçilince kutudaki yardımcı yazı buna döner (home.js) *@
+                    <label><input type="radio" name="mode" value="skill" checked data-placeholder="Bir yetenek adı yazın" /> <span>Yetenek</span></label>
+                    <label><input type="radio" name="mode" value="person" data-placeholder="Bir kişi adı yazın" /> <span>Kişi</span></label>
+                </div>
+                <div class="search-form">
+                    <input name="q" class="form-control search-input" maxlength="100"
+                           placeholder="Bir yetenek adı yazın" aria-label="Arama" />
+                    <button type="submit" class="fancy-btn fancy-btn-primary">Ara</button>
+                </div>
+            </form>
+        }
+
+        ViewData["ProfileTabsVariant"] = "cards";
+        <partial name="_ProfileTabs" />
+    }
+    else
+    {
+    @* Karşılama bölümü (yalnızca giriş yapmamış ziyaretçiye) *@
+    <section class="hero">
+        <h1 class="hero-title">Hoş geldiniz</h1>
+        <p class="hero-text">
+            Yetenek Platformu, bildiklerini paylaşmak isteyenlerle öğrenmek isteyenleri bir araya getirir.
+            Bir yetenek arayın, uygun saati seçin, online ya da yüz yüze buluşun.
+            Ücret zorunluluğu yoktur; her şey gönüllülük esasına dayanır.
+        </p>
+    </section>
+
+    @* Animasyonla açılan katılım kartı *@
+    <section class="join-card">
+        <h2>Bize Katılın</h2>
+        <p>Birkaç bilgiyle hemen üye olun. Hem bildiğinizi öğretin hem de merak ettiğinizi öğrenin.</p>
+        <div class="join-actions">
+            @* asp-page yerine Url.Page: sayfaya özel stillerin (Index.cshtml.css) bu linklere uygulanması için *@
+            <a class="join-btn join-btn-primary" href="@Url.Page("/Account/Register")">Kayıt Ol</a>
+            <a class="join-btn join-btn-secondary" href="@Url.Page("/Account/Login")">Giriş Yap</a>
+        </div>
+    </section>
+
+    @* Kaydırınca sırayla beliren nedenler *@
+    <section class="why">
+        <h2 class="why-title reveal">Neden katılmalısınız?</h2>
+        <div class="why-grid">
+            <article class="why-item reveal">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z" /></svg>
+                <h3>Gönüllülük esaslı</h3>
+                <p>Ders için ücret zorunluluğu yoktur. İsteyen, dersten sonra gönüllü olarak teşekkür edebilir.</p>
+            </article>
+            <article class="why-item reveal">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+                <h3>Kolay randevu</h3>
+                <p>Takvimden boş saati seçin, online ya da aynı şehirdeyseniz yüz yüze buluşun.</p>
+            </article>
+            <article class="why-item reveal">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-6 4 4 6-8" /><path d="M14 7h6v6" /></svg>
+                <h3>Hem öğret hem öğren</h3>
+                <p>Her üye bildiği konuda ders verebilir, merak ettiği konuda ders alabilir.</p>
+            </article>
+            <article class="why-item reveal">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+                <h3>Bilgileriniz güvende</h3>
+                <p>Telefonunuz yalnızca onaylanmış randevunuzun karşı tarafına gösterilir.</p>
+            </article>
+        </div>
+    </section>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/home.js" asp-append-version="true"></script>
+}

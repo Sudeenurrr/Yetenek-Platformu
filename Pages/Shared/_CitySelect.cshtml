@@ -1,0 +1,9 @@
+@model YetenekPlatformu.Pages.SearchModel
+@* Arama sayfasının şehir filtresi (Yetenek Ara ve Kişi Ara). Değer sunucuda TurkishCities listesine göre kontrol edilir. *@
+<select id="search-city" name="city" class="form-select search-city" aria-label="Şehir">
+    <option value="">Tüm şehirler</option>
+    @foreach (var city in Model.Cities)
+    {
+        <option value="@city" selected="@(city == Model.City)">@city</option>
+    }
+</select>
